@@ -1,0 +1,192 @@
+# 射精功能障礙比較資料結構與處理
+
+import json
+import pandas as pd
+from dataclasses import dataclass
+from typing import List, Dict
+
+@dataclass
+class MedicalCondition:
+    """醫學疾病資料結構"""
+    name_zh: str
+    name_en: str
+    definition: str
+    classification: List[str]
+    epidemiology: str
+    causes: List[str]
+    diagnosis: str
+    treatment: List[str]
+    clinical_notes: str
+
+# 射精功能障礙資料
+ejaculation_disorders = {
+    "premature_ejaculation": MedicalCondition(
+        name_zh="早發性射精",
+        name_en="Premature Ejaculation",
+        definition="持續或反覆於陰道插入後短時間（通常 ≤1 分鐘）即射精，且無法控制，伴隨困擾或人際壓力",
+        classification=["原發性（終身型）", "後天型（繼發型）"],
+        epidemiology="約 20–30% 男性一生中經歷過",
+        causes=[
+            "心理因素（焦慮、關係緊張）",
+            "神經敏感性增加",
+            "5-HT 相關神經傳導異常",
+            "甲狀腺功能亢進",
+            "前列腺炎等"
+        ],
+        diagnosis="ICD-11/DSM-5：陰道插入至射精潛伏時間（IELT）持續短、缺乏控制、造成困擾",
+        treatment=[
+            "行為治療（start-stop、squeeze technique）",
+            "心理治療",
+            "局部麻醉劑",
+            "藥物（SSRI、達泊西汀、PDE5 抑制劑合併）"
+        ],
+        clinical_notes="多為年輕或中年男性、容易影響伴侶關係"
+    ),
+    
+    "delayed_ejaculation": MedicalCondition(
+        name_zh="延遲性射精",
+        name_en="Delayed Ejaculation",
+        definition="持續或反覆需長時間性刺激（>20–25 分鐘）或甚至無法在性行為中射精，伴隨困擾或人際壓力",
+        classification=["原發性", "後天型"],
+        epidemiology="約 1–4% 男性",
+        causes=[
+            "心理因素（焦慮、壓力）",
+            "神經傳導異常（多為感覺減退）",
+            "藥物（SSRI、抗精神病藥）",
+            "內分泌異常（低睪固酮、甲狀腺低下）",
+            "神經病變（糖尿病周邊神經病變、多發性硬化）"
+        ],
+        diagnosis="DSM-5：延遲或缺乏射精，至少 6 個月，75–100% 的性活動中出現，並造成困擾",
+        treatment=[
+            "停用致病藥物",
+            "心理治療",
+            "增加刺激強度",
+            "藥物（巴普洛芬、安非他命類、溫和多巴胺促進劑）",
+            "治療原發疾病"
+        ],
+        clinical_notes="多見於中老年男性或長期服藥患者"
+    )
+}
+
+class MedicalTableGenerator:
+    """醫學表格生成器"""
+    
+    def __init__(self, conditions: Dict[str, MedicalCondition]):
+        self.conditions = conditions
+    
+    def to_dataframe(self) -> pd.DataFrame:
+        """轉換為 Pandas DataFrame"""
+        data = []
+        for key, condition in self.conditions.items():
+            data.append({
+                '項目': '定義',
+                condition.name_zh: condition.definition
+            })
+            data.append({
+                '項目': '常見分類',
+                condition.name_zh: '、'.join(condition.classification)
+            })
+            data.append({
+                '項目': '流行病學',
+                condition.name_zh: condition.epidemiology
+            })
+            data.append({
+                '項目': '主要原因',
+                condition.name_zh: '、'.join(condition.causes)
+            })
+            data.append({
+                '項目': '診斷依據',
+                condition.name_zh: condition.diagnosis
+            })
+            data.append({
+                '項目': '治療',
+                condition.name_zh: '、'.join(condition.treatment)
+            })
+            data.append({
+                '項目': '臨床重點',
+                condition.name_zh: condition.clinical_notes
+            })
+        
+        return pd.DataFrame(data)
+    
+    def to_markdown(self) -> str:
+        """生成 Markdown 表格"""
+        markdown = "# 射精功能障礙比較表\n\n"
+        markdown += "| 項目 | Premature Ejaculation（早發性射精） | Delayed Ejaculation（延遲性射精） |\n"
+        markdown += "|------|-------------------------------------|-----------------------------------|\n"
+        
+        pe = self.conditions['premature_ejaculation']
+        de = self.conditions['delayed_ejaculation']
+        
+        rows = [
+            ('**定義**', pe.definition, de.definition),
+            ('**常見分類**', '<br>• '.join([''] + pe.classification), '<br>• '.join([''] + de.classification)),
+            ('**流行病學**', pe.epidemiology, de.epidemiology),
+            ('**主要原因**', '<br>• '.join([''] + pe.causes), '<br>• '.join([''] + de.causes)),
+            ('**診斷依據**', pe.diagnosis, de.diagnosis),
+            ('**治療**', '<br>• '.join([''] + pe.treatment), '<br>• '.join([''] + de.treatment)),
+            ('**臨床重點**', pe.clinical_notes, de.clinical_notes)
+        ]
+        
+        for row in rows:
+            markdown += f"| {row[0]} | {row[1]} | {row[2]} |\n"
+        
+        return markdown
+    
+    def to_json(self) -> str:
+        """匯出為 JSON 格式"""
+        json_data = {}
+        for key, condition in self.conditions.items():
+            json_data[key] = {
+                'name_zh': condition.name_zh,
+                'name_en': condition.name_en,
+                'definition': condition.definition,
+                'classification': condition.classification,
+                'epidemiology': condition.epidemiology,
+                'causes': condition.causes,
+                'diagnosis': condition.diagnosis,
+                'treatment': condition.treatment,
+                'clinical_notes': condition.clinical_notes
+            }
+        return json.dumps(json_data, ensure_ascii=False, indent=2)
+    
+    def search_condition(self, keyword: str) -> List[str]:
+        """搜尋相關疾病資訊"""
+        results = []
+        for key, condition in self.conditions.items():
+            # 搜尋所有文字欄位
+            searchable_text = ' '.join([
+                condition.name_zh, condition.name_en, condition.definition,
+                ' '.join(condition.causes), condition.diagnosis,
+                ' '.join(condition.treatment), condition.clinical_notes
+            ])
+            
+            if keyword.lower() in searchable_text.lower():
+                results.append(f"{condition.name_zh} ({condition.name_en})")
+        
+        return results
+
+# 使用範例
+if __name__ == "__main__":
+    # 創建表格生成器
+    generator = MedicalTableGenerator(ejaculation_disorders)
+    
+    # 生成不同格式的輸出
+    print("=== Markdown 格式 ===")
+    print(generator.to_markdown())
+    
+    print("\n=== JSON 格式 ===")
+    print(generator.to_json())
+    
+    print("\n=== 搜尋功能測試 ===")
+    print("搜尋 'SSRI':", generator.search_condition('SSRI'))
+    print("搜尋 '心理':", generator.search_condition('心理'))
+    
+    # 儲存為檔案
+    with open('ejaculation_disorders.md', 'w', encoding='utf-8') as f:
+        f.write(generator.to_markdown())
+    
+    with open('ejaculation_disorders.json', 'w', encoding='utf-8') as f:
+        f.write(generator.to_json())
+    
+    print("\n檔案已儲存：ejaculation_disorders.md 和 ejaculation_disorders.json")
