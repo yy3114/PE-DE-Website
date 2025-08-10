@@ -1,109 +1,117 @@
-# 射精功能障礙比較資料結構與處理
-
-import json
-import pandas as pd
-from dataclasses import dataclass
-from typing import List, Dict
-
-@dataclass
-class MedicalCondition:
-    """醫學疾病資料結構"""
-    name_zh: str
-    name_en: str
-    definition: str
-    classification: List[str]
-    epidemiology: str
-    causes: List[str]
-    diagnosis: str
-    treatment: List[str]
-    clinical_notes: str
-
-# 射精功能障礙資料
-ejaculation_disorders = {
-    "premature_ejaculation": MedicalCondition(
-        name_zh="早發性射精",
-        name_en="Premature Ejaculation",
-        definition="持續或反覆於陰道插入後短時間（通常 ≤1 分鐘）即射精，且無法控制，伴隨困擾或人際壓力",
-        classification=["原發性（終身型）", "後天型（繼發型）"],
-        epidemiology="約 20–30% 男性一生中經歷過",
-        causes=[
-            "心理因素（焦慮、關係緊張）",
-            "神經敏感性增加",
-            "5-HT 相關神經傳導異常",
-            "甲狀腺功能亢進",
-            "前列腺炎等"
-        ],
-        diagnosis="ICD-11/DSM-5：陰道插入至射精潛伏時間（IELT）持續短、缺乏控制、造成困擾",
-        treatment=[
-            "行為治療（start-stop、squeeze technique）",
-            "心理治療",
-            "局部麻醉劑",
-            "藥物（SSRI、達泊西汀、PDE5 抑制劑合併）"
-        ],
-        clinical_notes="多為年輕或中年男性、容易影響伴侶關係"
-    ),
-    
-    "delayed_ejaculation": MedicalCondition(
-        name_zh="延遲性射精",
-        name_en="Delayed Ejaculation",
-        definition="持續或反覆需長時間性刺激（>20–25 分鐘）或甚至無法在性行為中射精，伴隨困擾或人際壓力",
-        classification=["原發性", "後天型"],
-        epidemiology="約 1–4% 男性",
-        causes=[
-            "心理因素（焦慮、壓力）",
-            "神經傳導異常（多為感覺減退）",
-            "藥物（SSRI、抗精神病藥）",
-            "內分泌異常（低睪固酮、甲狀腺低下）",
-            "神經病變（糖尿病周邊神經病變、多發性硬化）"
-        ],
-        diagnosis="DSM-5：延遲或缺乏射精，至少 6 個月，75–100% 的性活動中出現，並造成困擾",
-        treatment=[
-            "停用致病藥物",
-            "心理治療",
-            "增加刺激強度",
-            "藥物（巴普洛芬、安非他命類、溫和多巴胺促進劑）",
-            "治療原發疾病"
-        ],
-        clinical_notes="多見於中老年男性或長期服藥患者"
-    )
+# 選項 1: 簡單的資料結構
+ejaculation_data = {
+    "PE": {
+        "name": "早發性射精 (Premature Ejaculation)",
+        "definition": "持續或反覆於陰道插入後短時間（通常 ≤1 分鐘）即射精",
+        "prevalence": "20-30%",
+        "causes": ["心理因素", "神經敏感性增加", "5-HT異常", "甲狀腺亢進"],
+        "treatment": ["行為治療", "心理治療", "SSRI", "達泊西汀"]
+    },
+    "DE": {
+        "name": "延遲性射精 (Delayed Ejaculation)", 
+        "definition": "需長時間性刺激（>20–25分鐘）或無法射精",
+        "prevalence": "1-4%",
+        "causes": ["心理因素", "神經傳導異常", "SSRI副作用", "內分泌異常"],
+        "treatment": ["停藥", "心理治療", "增加刺激", "多巴胺促進劑"]
+    }
 }
 
-class MedicalTableGenerator:
-    """醫學表格生成器"""
+# 選項 2: 類別導向設計
+class EjaculationDisorder:
+    def __init__(self, name, definition, prevalence, causes, treatments):
+        self.name = name
+        self.definition = definition
+        self.prevalence = prevalence
+        self.causes = causes
+        self.treatments = treatments
     
-    def __init__(self, conditions: Dict[str, MedicalCondition]):
-        self.conditions = conditions
+    def display_info(self):
+        print(f"疾病: {self.name}")
+        print(f"定義: {self.definition}")
+        print(f"盛行率: {self.prevalence}")
+        print(f"原因: {', '.join(self.causes)}")
+        print(f"治療: {', '.join(self.treatments)}\n")
+
+# 選項 3: 資料庫風格 (SQLite)
+import sqlite3
+
+def create_medical_db():
+    conn = sqlite3.connect('medical_conditions.db')
+    c = conn.cursor()
     
-    def to_dataframe(self) -> pd.DataFrame:
-        """轉換為 Pandas DataFrame"""
-        data = []
-        for key, condition in self.conditions.items():
-            data.append({
-                '項目': '定義',
-                condition.name_zh: condition.definition
-            })
-            data.append({
-                '項目': '常見分類',
-                condition.name_zh: '、'.join(condition.classification)
-            })
-            data.append({
-                '項目': '流行病學',
-                condition.name_zh: condition.epidemiology
-            })
-            data.append({
-                '項目': '主要原因',
-                condition.name_zh: '、'.join(condition.causes)
-            })
-            data.append({
-                '項目': '診斷依據',
-                condition.name_zh: condition.diagnosis
-            })
-            data.append({
-                '項目': '治療',
-                condition.name_zh: '、'.join(condition.treatment)
-            })
-            data.append({
-                '項目': '臨床重點',
+    c.execute('''CREATE TABLE IF NOT EXISTS conditions
+                (id INTEGER PRIMARY KEY, 
+                 name TEXT, 
+                 type TEXT,
+                 definition TEXT,
+                 prevalence TEXT)''')
+    
+    c.execute('''CREATE TABLE IF NOT EXISTS treatments
+                (id INTEGER PRIMARY KEY,
+                 condition_id INTEGER,
+                 treatment TEXT,
+                 FOREIGN KEY (condition_id) REFERENCES conditions (id))''')
+    
+    # 插入資料
+    pe_data = (1, '早發性射精', 'PE', '持續或反覆於陰道插入後短時間即射精', '20-30%')
+    de_data = (2, '延遲性射精', 'DE', '需長時間性刺激或無法射精', '1-4%')
+    
+    c.execute('INSERT OR REPLACE INTO conditions VALUES (?,?,?,?,?)', pe_data)
+    c.execute('INSERT OR REPLACE INTO conditions VALUES (?,?,?,?,?)', de_data)
+    
+    conn.commit()
+    return conn
+
+# 選項 4: API 風格 (Flask)
+from flask import Flask, jsonify
+
+app = Flask(__name__)
+
+@app.route('/conditions/<condition_type>')
+def get_condition(condition_type):
+    if condition_type.upper() == 'PE':
+        return jsonify(ejaculation_data['PE'])
+    elif condition_type.upper() == 'DE':
+        return jsonify(ejaculation_data['DE'])
+    else:
+        return jsonify({"error": "Condition not found"}), 404
+
+# 選項 5: 資料分析 (Pandas)
+import pandas as pd
+
+def create_comparison_df():
+    data = {
+        '項目': ['定義', '盛行率', '主要原因', '主要治療'],
+        '早發性射精': [
+            '≤1分鐘即射精',
+            '20-30%',
+            '心理因素、神經敏感',
+            'SSRI、行為治療'
+        ],
+        '延遲性射精': [
+            '>20-25分鐘才射精',
+            '1-4%', 
+            'SSRI副作用、神經病變',
+            '停藥、多巴胺促進劑'
+        ]
+    }
+    return pd.DataFrame(data)
+
+# 使用範例
+if __name__ == "__main__":
+    print("=== 選項 1: 簡單資料結構 ===")
+    print(f"PE盛行率: {ejaculation_data['PE']['prevalence']}")
+    
+    print("\n=== 選項 2: 物件導向 ===")
+    pe = EjaculationDisorder(
+        "早發性射精", "≤1分鐘射精", "20-30%",
+        ["心理因素", "神經敏感"], ["SSRI", "行為治療"]
+    )
+    pe.display_info()
+    
+    print("=== 選項 5: 資料分析 ===")
+    df = create_comparison_df()
+    print(df)                '項目': '臨床重點',
                 condition.name_zh: condition.clinical_notes
             })
         
